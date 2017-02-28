@@ -2,9 +2,13 @@
 
 #+OPTIONS: toc:nil ^:nil
 
-05/2014 - 2017, Oswald Berthold <bertolos@informatik.hu-berlin.de>
 
 * Sensorimotor learning experiments with the Sphero robot (smp_sphero)
+
+05/2014 - 2017, Oswald Berthold
+
+Python code from the Closed-loop sphero behaviour paper [fn:2].
+
 ** Preparation
 
  This is built on top of the following stacks, make sure to have that
@@ -47,25 +51,37 @@
  # | weight_bounding.py                    |   |
  # | sphero_hk.py                          |   |
 
- |---------------------------------------+---|
- | Utils                                 |   |
- |---------------------------------------+---|
- | bluerssi.py                           |   |
- | sphero_colors.py                      |   |
- | sphero_joystick.py                    |   |
- | sphero_raw.py                         |   |
- | sphero_simple_openloop.py             |   |
- | sphero_test.py                        |   |
- |---------------------------------------+---|
- | Experiments                           |   |
- |---------------------------------------+---|
- | sphero_res_learner_1D_analyze.py      |   |
- | sphero_res_learner_1D.py              |   |
- | sphero_res_learner_2D_polar.py        |   |
- | sphero_res_learner_2D.py              |   |
- | sphero_sensorimotor_infth_measures.py |   |
+When roscore and sphero.py are running and connected, try and and run
+a few of the utils/test to check the basic communication.
 
+ |----------------------------------+--------------------------------------------|
+ | *Utils*                          |                                            |
+ |----------------------------------+--------------------------------------------|
+ | bluerssi.py                      | Log BT rssi values                         |
+ | sphero_colors.py                 | Basic color actuation with ros             |
+ | sphero_joystick.py               | Control sphero via ros joy_node            |
+ | sphero_raw.py                    | Minimal test of raw communication protocol |
+ | sphero_simple_openloop.py        | Simple open-loop command test              |
+ | sphero_test.py                   | Another minimal test                       |
+
+*** Work in progress
+
+When that works, you could try the learning experiments, just to
+disentangle possible sources of errors. *<2017-02-28 Tue> - This
+doesn't work yet*: It needs more cleaning work on my side, hope to be
+done soon.
+
+ |----------------------------------+--------------------------------------------|
+ | *Experiments*                    |                                            |
+ |----------------------------------+--------------------------------------------|
+ | sphero_res_learner_1D.py         |                                            |
+ | sphero_res_learner_2D_polar.py   |                                            |
+ | sphero_res_learner_2D.py         |                                            |
+ | sphero_res_learner_1D_analyze.py |                                            |
+ | sphero_data_recorder.py          |                                            |
 
 * Footnotes
+
+[fn:2] Berthold and Hafner, 2015, Closed-loop acquisition of behaviour on the Sphero robot, https://mitpress.mit.edu/sites/default/files/titles/content/ecal2015/ch084.html
 
 [fn:1] https://github.com/x75/sphero_ros
