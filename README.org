@@ -3,7 +3,7 @@
 #+OPTIONS: toc:nil ^:nil
 
 
-* Sensorimotor learning experiments with the Sphero robot (smp_sphero)
+* Sensorimotor learning with the Sphero robot
 
 05/2014 - 2017, Oswald Berthold
 
@@ -17,7 +17,6 @@ Python code from the Closed-loop sphero behaviour paper [fn:2].
   - ROS base install, use apt-get
   - sphero_ros driver from [fn:1], install via $ROSDISTRO_workspace
     catkin_make. See the ROS wiki how to set up a catkin workspace.
-
 
  This is the launch sequence for talking to sphero with the ros driver:
 
@@ -69,7 +68,8 @@ a few of the utils/test to check the basic communication.
 When that works, you could try the learning experiments, just to
 disentangle possible sources of errors. *<2017-02-28 Tue> - This
 doesn't work yet*: It needs more cleaning work on my side, hope to be
-done soon.
+done soon. When it is done, you will probably need to clone/install
+additional packages like smp_lib and smp_msgs.
 
  |----------------------------------+--------------------------------------------|
  | *Experiments*                    |                                            |

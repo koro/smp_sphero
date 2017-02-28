@@ -1,6 +1,6 @@
 
 
-# Sensorimotor learning experiments with the Sphero robot (smp\_sphero)
+# Sensorimotor learning with the Sphero robot
 
 05/2014 - 2017, Oswald Berthold
 
