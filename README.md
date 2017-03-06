@@ -16,28 +16,33 @@ installed (tested only on Ubuntu)
 -   ROS base install, use apt-get
 -   sphero\_ros driver from <sup><a id="fnr.2" class="footref" href="#fn.2">2</a></sup>, install via $ROSDISTRO\_workspace
     catkin\_make. See the ROS wiki how to set up a catkin workspace.
+-   get smp\_msgs <sup><a id="fnr.3" class="footref" href="#fn.3">3</a></sup> and install it into your ROS workspace
 
-This is the launch sequence for talking to sphero with the ros driver:
+This is the launch sequence for the sphero ROS node
 
     roscore    
     python src/sphero_ros/sphero_node/nodes/sphero.py
 
-sphero.py accepts arguments such as update frequency sensorimotor loop
-and now also a BT target address to connect directly to a given device
+\`sphero.py\` accepts arguments such as  sensorimotor loop frequency
+and also a BT target address to connect directly to a given device, if
+you know it. The experiments are tuned to 20 Hz sampling rate so we
+need to do
 
-    python src/sphero_ros/sphero_node/nodes/sphero.py --freq 10
+    python src/sphero_ros/sphero_node/nodes/sphero.py --freq 20
+
+or
 
     python src/sphero_ros/sphero_node/nodes/sphero.py --freq 20 --target_addr sp:he:ro:sa:dd:re
-
-Optionally, e.g. for sphero\_joystick.py, you need
-
-    rosrun joy joy_node
 
 
 ## Scripts
 
-When roscore and sphero.py are running and connected, try and and run
-a few of the utils/test to check the basic communication.
+When roscore and sphero.py are up and running, you can run ROS clients
+like e.g. sphero\_joystick.py 
+
+    rosrun joy joy_node
+
+A few of the utils/tests to check the basic communication is working
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
@@ -93,12 +98,10 @@ a few of the utils/test to check the basic communication.
 </table>
 
 
-### Work in progress
+### Learning
 
 When that works, you could try the learning experiments, just to
-disentangle possible sources of errors. **<span class="timestamp-wrapper"><span class="timestamp">&lt;2017-02-28 Di&gt; </span></span> - This
-doesn't work yet**: It needs more cleaning work on my side, hope to be
-done soon.
+disentangle possible sources of errors.
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
@@ -147,9 +150,16 @@ done soon.
 </tbody>
 </table>
 
+    python sphero_res_learner_1D.py --config default.cfg
+
+You can copy the default.cfg and start editing it to play around with
+different targets and parameters.
+
 
 # Footnotes
 
 <sup><a id="fn.1" href="#fnr.1">1</a></sup> Berthold and Hafner, 2015, Closed-loop acquisition of behaviour on the Sphero robot, <https://mitpress.mit.edu/sites/default/files/titles/content/ecal2015/ch084.html>
 
 <sup><a id="fn.2" href="#fnr.2">2</a></sup> <https://github.com/x75/sphero_ros>
+
+<sup><a id="fn.3" href="#fnr.3">3</a></sup> <https://github.com/x75/smp_msgs>

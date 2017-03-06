@@ -11,27 +11,29 @@ Python code from the Closed-loop sphero behaviour paper [fn:2].
 
 ** Preparation
 
- This is built on top of the following stacks, make sure to have that
- installed (tested only on Ubuntu) 
+This is built on top of the following stacks, make sure to have that
+installed (tested only on Ubuntu) 
   - python-numpy, python-bluetooth, ... Use apt-get / distro mechanism
   - ROS base install, use apt-get
   - sphero_ros driver from [fn:1], install via $ROSDISTRO_workspace
     catkin_make. See the ROS wiki how to set up a catkin workspace.
+  - get smp_msgs [fn:3] and install it into your ROS workspace
 
- This is the launch sequence for talking to sphero with the ros driver:
+This is the launch sequence for the sphero ROS node
 
  : roscore    
- : python src/sphero_ros/sphero_node/nodes/sphero.py
+ : python src/sphero_ros/sphero_node/nodes/sphero.py 
 
- sphero.py accepts arguments such as update frequency sensorimotor loop
- and now also a BT target address to connect directly to a given device
+`sphero.py` accepts arguments such as  sensorimotor loop frequency
+and also a BT target address to connect directly to a given device, if
+you know it. The experiments are tuned to 20 Hz sampling rate so we
+need to do
 
- : python src/sphero_ros/sphero_node/nodes/sphero.py --freq 10
+ : python src/sphero_ros/sphero_node/nodes/sphero.py --freq 20
+
+or
     
  : python src/sphero_ros/sphero_node/nodes/sphero.py --freq 20 --target_addr sp:he:ro:sa:dd:re
-
- Optionally, e.g. for sphero_joystick.py, you need
- : rosrun joy joy_node
 
 ** Scripts
 
@@ -50,8 +52,11 @@ Python code from the Closed-loop sphero behaviour paper [fn:2].
  # | weight_bounding.py                    |   |
  # | sphero_hk.py                          |   |
 
-When roscore and sphero.py are running and connected, try and and run
-a few of the utils/test to check the basic communication.
+When roscore and sphero.py are up and running, you can run ROS clients
+like e.g. sphero_joystick.py 
+ : rosrun joy joy_node
+
+A few of the utils/tests to check the basic communication is working
 
  |----------------------------------+--------------------------------------------|
  | *Utils*                          |                                            |
@@ -63,13 +68,10 @@ a few of the utils/test to check the basic communication.
  | sphero_simple_openloop.py        | Simple open-loop command test              |
  | sphero_test.py                   | Another minimal test                       |
 
-*** Work in progress
+*** Learning
 
 When that works, you could try the learning experiments, just to
-disentangle possible sources of errors. *<2017-02-28 Tue> - This
-doesn't work yet*: It needs more cleaning work on my side, hope to be
-done soon. When it is done, you will probably need to clone/install
-additional packages like smp_lib and smp_msgs.
+disentangle possible sources of errors.
 
  |----------------------------------+--------------------------------------------|
  | *Experiments*                    |                                            |
@@ -80,7 +82,14 @@ additional packages like smp_lib and smp_msgs.
  | sphero_res_learner_1D_analyze.py |                                            |
  | sphero_data_recorder.py          |                                            |
 
+: python sphero_res_learner_1D.py --config default.cfg
+
+You can copy the default.cfg and start editing it to play around with
+different targets and parameters.
+
 * Footnotes
+
+[fn:3] https://github.com/x75/smp_msgs
 
 [fn:2] Berthold and Hafner, 2015, Closed-loop acquisition of behaviour on the Sphero robot, https://mitpress.mit.edu/sites/default/files/titles/content/ecal2015/ch084.html
 
