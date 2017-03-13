@@ -71,14 +71,17 @@ class LPZRos(object):
         self.numsen_raw = 8 # 5 # 2
         self.numsen = 8 # 5 # 2
         self.nummot = 2
-        self.bufsize = 2
+        # sphero lag is 4 timesteps
+        self.lag = 1 # 2
+        # buffer size accomodates causal minimum 1 + lag time steps
+        self.bufsize = 1 + self.lag # 2
         self.creativity = 0.5
         # self.epsA = 0.1
         self.epsA = 0.02
         # self.epsA = 0.001
         # self.epsC = 0.001
-        # self.epsC = 0.1
-        self.epsC = 0.5
+        self.epsC = 0.1
+        # self.epsC = 0.5
 
         ############################################################
         # forward model
@@ -90,6 +93,7 @@ class LPZRos(object):
         # self.C  = np.eye(self.nummot) * 0.4
         self.C  = np.zeros((self.nummot, self.numsen))
         self.C[range(self.nummot),range(self.nummot)] = 1 * 0.4
+        self.C  = np.random.uniform(-1e-2, 1e-2, (self.nummot, self.numsen))
         print "self.C", self.C
         self.h  = np.zeros((self.nummot,1))
         self.g  = np.tanh # sigmoidal activation function
@@ -103,6 +107,9 @@ class LPZRos(object):
         self.v_avg = np.zeros((self.numsen, 1)) 
         self.xsi   = np.zeros((self.numsen, 1))
 
+        self.imu  = Imu()
+        self.imu_vec  = np.zeros((3 + 3 + 3, 1))
+        self.imu_smooth = 0.8 # coef
         self.odom = Odometry()
         
         # expansion
@@ -138,13 +145,18 @@ class LPZRos(object):
         
         # self.iosm.x_raw[3] = self.odom.twist.twist.linear.y
         # self.cb_sensors((self.odom.twist.twist.linear.x,self.odom.twist.twist.linear.y))
-        imu_lin_acc_gain = 0.01
-        imu_orienta_gain = 0.1
-        (r, p, y) = tf.transformations.euler_from_quaternion([self.imu.orientation.x, self.imu.orientation.y, self.imu.orientation.z, self.imu.orientation.w])
+        imu_lin_acc_gain = 1e-3
+        imu_orienta_gain = 1e-1
+        
+        # self.cb_sensors((self.odom.twist.twist.linear.x,self.odom.twist.twist.linear.y)) # ,
+        # self.cb_sensors((self.odom.twist.twist.linear.x,self.odom.twist.twist.linear.y,
+        #                  self.imu.linear_acceleration.x * imu_lin_acc_gain, self.imu.linear_acceleration.y * imu_lin_acc_gain,
+        #                  self.imu.linear_acceleration.z * imu_lin_acc_gain,
+        #                  r * imu_orienta_gain, p * imu_orienta_gain, y * imu_orienta_gain))
         self.cb_sensors((self.odom.twist.twist.linear.x,self.odom.twist.twist.linear.y,
-                         self.imu.linear_acceleration.x * imu_lin_acc_gain, self.imu.linear_acceleration.y * imu_lin_acc_gain,
-                         self.imu.linear_acceleration.z * imu_lin_acc_gain,
-                         r * imu_orienta_gain, p * imu_orienta_gain, y * imu_orienta_gain))
+                         self.imu_vec[0] * imu_lin_acc_gain, self.imu_vec[1] * imu_lin_acc_gain,
+                         self.imu_vec[2] * imu_lin_acc_gain,
+                         self.imu_vec[3] * imu_orienta_gain, self.imu_vec[4] * imu_orienta_gain, self.imu_vec[5] * imu_orienta_gain))
         self.cb_odom_cnt += 1
         return
     
@@ -153,7 +165,20 @@ class LPZRos(object):
         sensorimotor loop execution"""
         # print "imu", msg
         # return
+        # FIXME: do the averaging here
         self.imu = msg
+        imu_vec_acc = np.array((self.imu.linear_acceleration.x, self.imu.linear_acceleration.y, self.imu.linear_acceleration.z))
+        imu_vec_gyr = np.array((self.imu.angular_velocity.x, self.imu.angular_velocity.y, self.imu.angular_velocity.z))
+        (r, p, y) = tf.transformations.euler_from_quaternion([self.imu.orientation.x, self.imu.orientation.y, self.imu.orientation.z, self.imu.orientation.w])
+        # print "r, p, y", r, p, y
+        imu_vec_ori = np.array((r, p, y))
+        # print "imu_vec_acc", imu_vec_acc
+        # print "imu_vec_gyr", imu_vec_gyr
+        # print "imu_vec_ori", imu_vec_ori
+        imu_vec_ = np.hstack((imu_vec_acc, imu_vec_gyr, imu_vec_ori)).reshape(self.imu_vec.shape)
+        # print "imu_vec_", imu_vec_
+        self.imu_vec = self.imu_vec * self.imu_smooth + (1 - self.imu_smooth) * imu_vec_
+        print "self.imu_vec", self.imu_vec
 
         # (r, p, y) = tf.transformations.euler_from_quaternion([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
         # # print r, p, y
@@ -171,12 +196,15 @@ class LPZRos(object):
         
     def cb_sensors(self, msg):
         """lpz sensors callback: receive sensor values, sos algorithm attached"""
+        # FIXME: fix the timing
+        now = 0
         # self.msg_motors.data = []
         self.x = np.roll(self.x, 1, axis=1) # push back past
         self.y = np.roll(self.y, 1, axis=1) # push back past
         # update with new sensor data
-        self.x[:,0] = np.array(msg)
-        print "msg", msg
+        self.x[:,now] = np.array(msg)
+        self.x[[0,1],now] = 0.
+        # print "msg", msg
         
         # xa = np.array([msg.data]).T
         # self.x[:,[0]] = self.expansion_random_system(xa, dim_target = self.numsen)
@@ -184,13 +212,13 @@ class LPZRos(object):
         # self.pub_sensor_exp.publish(self.msg_sensor_exp)
         
         # compute new motor values
-        x_tmp = np.atleast_2d(self.x[:,0]).T + self.v_avg * self.creativity
+        x_tmp = np.atleast_2d(self.x[:,now]).T + self.v_avg * self.creativity
         print "x_tmp.shape", x_tmp.shape
         # print self.g(np.dot(self.C, x_tmp) + self.h)
         m1 = np.dot(self.C, x_tmp)
         print "m1.shape", m1.shape
         t1 = self.g(m1 + self.h).reshape((self.nummot,))
-        self.y[:,0] = t1
+        self.y[:,now] = t1
 
         self.cnt += 1
         if self.cnt <= 2: return
@@ -199,9 +227,12 @@ class LPZRos(object):
         # print "y", self.y
         
         # local variables
-        x = np.atleast_2d(self.x[:,1]).T
-        y = np.atleast_2d(self.y[:,1]).T
-        x_fut = np.atleast_2d(self.x[:,0]).T
+        x = np.atleast_2d(self.x[:,self.lag]).T
+        # this is wrong
+        # y = np.atleast_2d(self.y[:,self.lag]).T
+        # this is better
+        y = np.atleast_2d(self.y[:,self.lag]).T
+        x_fut = np.atleast_2d(self.x[:,now]).T
 
         # print "x", x.shape, x, x_fut.shape, x_fut
         z = np.dot(self.C, x + self.v_avg * self.creativity) + self.h
@@ -214,7 +245,8 @@ class LPZRos(object):
 
         print "g_prime", self.cnt, g_prime
         print "g_prime_inv", self.cnt, g_prime_inv
-        
+
+        # forward prediction error xsi
         xsi = x_fut - (np.dot(self.A, y) + self.b)
         print "xsi =", xsi
         
@@ -223,7 +255,7 @@ class LPZRos(object):
         # self.A += self.epsA * np.dot(xsi, np.atleast_2d(self.y[:,0])) + (self.A * -0.003) * 0.1
         self.b += self.epsA * xsi              + (self.b * -0.001) * 0.1
 
-        print "A", self.cnt, self.A
+        # print "A", self.cnt, self.A
         # print "b", self.b
 
         if self.mode == 1: # TLE / homekinesis
@@ -265,16 +297,19 @@ class LPZRos(object):
             # print dC, dh
             # self.C +=
 
-        self.h += np.clip(dh, -.1, .1)
-        self.C += np.clip(dC, -.1, .1)
+        # FIXME: ???
+        # self.h += np.clip(dh, -.1, .1)
+        # self.C += np.clip(dC, -.1, .1)
+        self.h += np.clip(dh, -10, 10)
+        self.C += np.clip(dC, -10, 10)
 
         # print "C", self.C
         # print "h", self.h
         print "y", self.y
         
                 
-        self.motors.linear.x = self.y[0,0] * 100
-        self.motors.linear.y = self.y[1,0] * 100
+        self.motors.linear.x = self.y[0,0] * 255
+        self.motors.linear.y = self.y[1,0] * 255
         print "self.motors", self.motors
         self.pub["twist"].publish(self.motors)
         # self.msg_motors.data.append(m[0])
