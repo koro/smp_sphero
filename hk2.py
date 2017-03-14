@@ -38,9 +38,10 @@ def idtanh(x):
 # main homeostasis, homeokinesis class based on smp_thread_ros
 class LPZRos(smp_thread_ros):
     modes = {"hs": 0, "hk": 1, "eh_pi_d": 2}
-    def __init__(self, mode="hs", loop_time = 0.05):
+    def __init__(self, mode="hs", loop_time = 1./20):
         pubs = {
             "/cmd_vel": [Twist,],
+            "/cmd_vel_raw": [Twist,],
             "/set_color": [ColorRGBA,],
             "/lpzros/x": [Float32MultiArray]
             }
@@ -93,21 +94,24 @@ class LPZRos(smp_thread_ros):
         self.imu_lin_acc_gain = 0 # 1e-3
         self.imu_gyrosco_gain = 1e-2
         self.imu_orienta_gain = 0 # 1e-1
-        self.linear_gain      = 0.0 # 1e-1
-        self.output_gain = 120
+        self.linear_gain      = 1.0 # 1e-1
+        self.output_gain = 120 # 120
         
         # sphero lag is 4 timesteps
         self.lag = 1 # 2
         # buffer size accomodates causal minimum 1 + lag time steps
         self.bufsize = 1 + self.lag # 2
-        self.creativity = 0.05
-        #self.epsA = 0.1
+        self.creativity = 0.1
+        # self.epsA = 0.1
         self.epsA = 0.02
         # self.epsA = 0.001
+        # self.epsC = 0.001
         # self.epsC = 0.001
         # self.epsC = 0.01
         # self.epsC = 0.1
         self.epsC = 0.5
+        # self.epsC = 1.0
+        # self.epsC = 2.0
 
         ############################################################
         # forward model
@@ -322,10 +326,10 @@ class LPZRos(smp_thread_ros):
             # self.C +=
 
         # FIXME: ???
-        # self.h += np.clip(dh, -.1, .1)
-        # self.C += np.clip(dC, -.1, .1)
-        self.h += np.clip(dh, -10, 10)
-        self.C += np.clip(dC, -10, 10)
+        self.h += np.clip(dh, -.1, .1)
+        self.C += np.clip(dC, -.1, .1)
+        # self.h += np.clip(dh, -10, 10)
+        # self.C += np.clip(dC, -10, 10)
 
         # print "C", self.C
         # print "h", self.h
@@ -352,8 +356,11 @@ class LPZRos(smp_thread_ros):
     def prepare_output(self):
         self.motors.linear.x = self.y[0,0] * self.output_gain
         self.motors.linear.y = self.y[1,0] * self.output_gain
-        print "y = %s , motors = %s" % (self.y, self.motors)
         self.pub["_cmd_vel"].publish(self.motors)
+        # self.motors.linear.x  = self.y[0,0] * self.output_gain * 1.414
+        # self.motors.angular.z = self.y[1,0] * 1 # self.output_gain
+        # self.pub["_cmd_vel_raw"].publish(self.motors)
+        print "y = %s , motors = %s" % (self.y, self.motors)
                             
     def run(self):
         """LPZRos run method overwriting smp_thread_ros"""
@@ -386,7 +393,7 @@ class LPZRos(smp_thread_ros):
             # print "%s.run isrunning %d" % (self.__class__.__name__, self.isrunning) 
             
             # check if finished
-            if self.cnt_main == 1000: # self.cfg.len_episode:
+            if self.cnt_main == 100000: # self.cfg.len_episode:
                 # self.savelogs()
                 self.isrunning = False
                 # generates problem with batch mode
